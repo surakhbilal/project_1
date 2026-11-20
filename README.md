@@ -169,3 +169,26 @@ Server default berjalan di: `http://localhost:3000`
       "error": "Email sudah terdaftar"
     }
     ```
+
+### Login User (Baru)
+- **`POST /api/users/login`**
+  - Autentikasi user dan membuat sesi login baru (token UUID).
+  - Body (JSON):
+    ```json
+    {
+      "email": "rakhbil@localhost",
+      "password": "rahasia"
+    }
+    ```
+  - Response Success (200):
+    ```json
+    {
+      "data": "e2a3b4c5-..."
+    }
+    ```
+  - Response Error (400 - Kredensial Salah):
+    ```json
+    {
+      "error": "Email atau password salah"
+    }
+    ```
