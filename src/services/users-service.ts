@@ -67,3 +67,43 @@ export async function loginUser(
 
   return token;
 }
+
+export type CurrentUser = {
+  id: number;
+  name: string;
+  email: string;
+  created_at: Date;
+};
+
+export async function getCurrentUser(token: string): Promise<CurrentUser> {
+  // Query session by token
+  const existingSession = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.token, token))
+    .limit(1);
+
+  const session = existingSession[0];
+  if (!session) {
+    throw new Error('Unauthorized');
+  }
+
+  // Query user by userId without password
+  const existingUser = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      created_at: users.createdAt,
+    })
+    .from(users)
+    .where(eq(users.id, session.userId))
+    .limit(1);
+
+  const user = existingUser[0];
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  return user;
+}
