@@ -217,3 +217,23 @@ Server default berjalan di: `http://localhost:3000`
       "error": "Unauthorized"
     }
     ```
+
+### Logout User (Baru)
+- **`DELETE /api/users/current`**
+  - Menghapus sesi login user saat ini dari database.
+  - Headers:
+    ```
+    Authorization: Bearer <token>
+    ```
+  - Response Success (200):
+    ```json
+    {
+      "data": "OK"
+    }
+    ```
+  - Response Error (401 - Unauthorized):
+    ```json
+    {
+      "error": "Unauthorized"
+    }
+    ```

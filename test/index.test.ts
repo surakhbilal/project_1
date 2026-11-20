@@ -71,4 +71,29 @@ describe('Elysia Server Endpoints', () => {
     const data = (await response.json()) as { error: string };
     expect(data.error).toBe('Unauthorized');
   });
+
+  it('returns 401 for DELETE /api/users/current without authorization header', async () => {
+    const response = await app.handle(
+      new Request('http://localhost:3000/api/users/current', {
+        method: 'DELETE',
+      })
+    );
+    expect(response.status).toBe(401);
+    const data = (await response.json()) as { error: string };
+    expect(data.error).toBe('Unauthorized');
+  });
+
+  it('returns 401 for DELETE /api/users/current with invalid token', async () => {
+    const response = await app.handle(
+      new Request('http://localhost:3000/api/users/current', {
+        method: 'DELETE',
+        headers: {
+          Authorization: 'Bearer invalid-token-99999',
+        },
+      })
+    );
+    expect(response.status).toBe(401);
+    const data = (await response.json()) as { error: string };
+    expect(data.error).toBe('Unauthorized');
+  });
 });
