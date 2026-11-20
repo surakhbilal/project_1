@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
-import { db, users } from '../db';
+import { db, users, sessions } from '../db';
+import { randomUUID } from 'crypto';
 
 export async function registerUser(name: string, email: string, password: string): Promise<string> {
   // Check if email is already registered
@@ -25,4 +26,44 @@ export async function registerUser(name: string, email: string, password: string
   });
 
   return 'OK';
+}
+
+export async function loginUser(
+  email: string,
+  password: string,
+): Promise<string> {
+  // Query user by email
+  const existingUser = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  if (existingUser.length === 0) {
+    throw new Error('Email atau password salah');
+  }
+
+  const user = existingUser[0];
+
+  if (!user) {
+    throw new Error('Email atau password salah');
+  }
+
+  // Compare password with bcrypt hash
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+
+  if (!isPasswordValid) {
+    throw new Error('Email atau password salah');
+  }
+
+  // Generate session token
+  const token = randomUUID();
+
+  // Insert new session
+  await db.insert(sessions).values({
+    token,
+    userId: user.id,
+  });
+
+  return token;
 }

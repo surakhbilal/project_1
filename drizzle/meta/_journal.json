@@ -15,6 +15,13 @@
       "when": 1795170621240,
       "tag": "0001_complex_excalibur",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1795171727143,
+      "tag": "0002_bitter_squadron_supreme",
+      "breakpoints": true
     }
   ]
 }

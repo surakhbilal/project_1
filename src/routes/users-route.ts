@@ -1,27 +1,50 @@
 import { Elysia, t } from 'elysia';
-import { registerUser } from '../services/users-service';
+import { registerUser, loginUser } from '../services/users-service';
 
-export const usersRoute = new Elysia({ prefix: '/api/users' }).post(
-  '/',
-  async ({ body, set }) => {
-    try {
-      const result = await registerUser(body.name, body.email, body.password);
-      set.status = 201;
-      return {
-        data: result,
-      };
-    } catch (error: any) {
-      set.status = 400;
-      return {
-        error: error?.message || 'Registrasi gagal',
-      };
-    }
-  },
-  {
-    body: t.Object({
-      name: t.String({ minLength: 1 }),
-      email: t.String({ format: 'email' }),
-      password: t.String({ minLength: 6 }),
-    }),
-  }
-);
+export const usersRoute = new Elysia({ prefix: '/api/users' })
+  .post(
+    '/',
+    async ({ body, set }) => {
+      try {
+        const result = await registerUser(body.name, body.email, body.password);
+        set.status = 201;
+        return {
+          data: result,
+        };
+      } catch (error: any) {
+        set.status = 400;
+        return {
+          error: error?.message || 'Registrasi gagal',
+        };
+      }
+    },
+    {
+      body: t.Object({
+        name: t.String({ minLength: 1 }),
+        email: t.String({ format: 'email' }),
+        password: t.String({ minLength: 6 }),
+      }),
+    },
+  )
+  .post(
+    '/login',
+    async ({ body, set }) => {
+      try {
+        const token = await loginUser(body.email, body.password);
+        return {
+          data: token,
+        };
+      } catch (error: any) {
+        set.status = 400;
+        return {
+          error: error?.message || 'Login gagal',
+        };
+      }
+    },
+    {
+      body: t.Object({
+        email: t.String({ format: 'email' }),
+        password: t.String({ minLength: 1 }),
+      }),
+    },
+  );
