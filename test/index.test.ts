@@ -49,4 +49,26 @@ describe('Elysia Server Endpoints', () => {
     );
     expect(response.status).toBe(422);
   });
+
+  it('returns 401 for GET /api/users/current without authorization header', async () => {
+    const response = await app.handle(
+      new Request('http://localhost:3000/api/users/current')
+    );
+    expect(response.status).toBe(401);
+    const data = (await response.json()) as { error: string };
+    expect(data.error).toBe('Unauthorized');
+  });
+
+  it('returns 401 for GET /api/users/current with invalid token', async () => {
+    const response = await app.handle(
+      new Request('http://localhost:3000/api/users/current', {
+        headers: {
+          Authorization: 'Bearer invalid-token-12345',
+        },
+      })
+    );
+    expect(response.status).toBe(401);
+    const data = (await response.json()) as { error: string };
+    expect(data.error).toBe('Unauthorized');
+  });
 });

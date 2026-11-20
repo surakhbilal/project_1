@@ -192,3 +192,28 @@ Server default berjalan di: `http://localhost:3000`
       "error": "Email atau password salah"
     }
     ```
+
+### Get Current User (Baru)
+- **`GET /api/users/current`**
+  - Mengambil data user yang sedang login berdasarkan Bearer token sesi.
+  - Headers:
+    ```
+    Authorization: Bearer <token>
+    ```
+  - Response Success (200):
+    ```json
+    {
+      "data": {
+        "id": 1,
+        "name": "Rakhbil",
+        "email": "rakhbil@localhost",
+        "created_at": "2026-11-20T09:00:00.000Z"
+      }
+    }
+    ```
+  - Response Error (401 - Unauthorized):
+    ```json
+    {
+      "error": "Unauthorized"
+    }
+    ```
