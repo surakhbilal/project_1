@@ -12,10 +12,12 @@ export const app = new Elysia()
   }))
   // Mount user CRUD routes
   .use(userRoutes)
-  // Mount user registration route
-  .use(usersRoute)
-  .listen(port);
+  // Mount user auth routes
+  .use(usersRoute);
 
-console.log(`🦊 Elysia server running at http://${app.server?.hostname}:${app.server?.port}`);
+if (import.meta.main) {
+  app.listen(port);
+  console.log(`🦊 Elysia server running at http://${app.server?.hostname}:${app.server?.port}`);
+}
 
 export type App = typeof app;

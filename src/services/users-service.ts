@@ -2,28 +2,36 @@ import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { db, users, sessions } from '../db';
 import { randomUUID } from 'crypto';
+import { HttpError } from '../errors';
 
 export async function registerUser(name: string, email: string, password: string): Promise<string> {
   // Check if email is already registered
   const existingUser = await db
-    .select()
+    .select({ id: users.id })
     .from(users)
     .where(eq(users.email, email))
     .limit(1);
 
   if (existingUser.length > 0) {
-    throw new Error('Email sudah terdaftar');
+    throw new HttpError(400, 'Email sudah terdaftar');
   }
 
   // Hash password using bcryptjs with 10 salt rounds
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Insert new user into database
-  await db.insert(users).values({
-    name,
-    email,
-    password: hashedPassword,
-  });
+  // Insert new user into database (also catch race-condition duplicate entry)
+  try {
+    await db.insert(users).values({
+      name,
+      email,
+      password: hashedPassword,
+    });
+  } catch (error: any) {
+    if (error?.code === 'ER_DUP_ENTRY') {
+      throw new HttpError(400, 'Email sudah terdaftar');
+    }
+    throw error;
+  }
 
   return 'OK';
 }
@@ -39,21 +47,15 @@ export async function loginUser(
     .where(eq(users.email, email))
     .limit(1);
 
-  if (existingUser.length === 0) {
-    throw new Error('Email atau password salah');
-  }
-
   const user = existingUser[0];
-
   if (!user) {
-    throw new Error('Email atau password salah');
+    throw new HttpError(400, 'Email atau password salah');
   }
 
   // Compare password with bcrypt hash
   const isPasswordValid = await bcrypt.compare(password, user.password);
-
   if (!isPasswordValid) {
-    throw new Error('Email atau password salah');
+    throw new HttpError(400, 'Email atau password salah');
   }
 
   // Generate session token
@@ -85,7 +87,7 @@ export async function getCurrentUser(token: string): Promise<CurrentUser> {
 
   const session = existingSession[0];
   if (!session) {
-    throw new Error('Unauthorized');
+    throw new HttpError(401, 'Unauthorized');
   }
 
   // Query user by userId without password
@@ -102,7 +104,7 @@ export async function getCurrentUser(token: string): Promise<CurrentUser> {
 
   const user = existingUser[0];
   if (!user) {
-    throw new Error('Unauthorized');
+    throw new HttpError(401, 'Unauthorized');
   }
 
   return user;
@@ -111,14 +113,14 @@ export async function getCurrentUser(token: string): Promise<CurrentUser> {
 export async function logoutUser(token: string): Promise<string> {
   // Query session by token
   const existingSession = await db
-    .select()
+    .select({ id: sessions.id })
     .from(sessions)
     .where(eq(sessions.token, token))
     .limit(1);
 
   const session = existingSession[0];
   if (!session) {
-    throw new Error('Unauthorized');
+    throw new HttpError(401, 'Unauthorized');
   }
 
   // Delete session from sessions table

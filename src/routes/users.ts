@@ -1,23 +1,31 @@
 import { Elysia, t } from 'elysia';
 import { eq } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
 import { db, users } from '../db';
 
+const userPublicFields = {
+  id: users.id,
+  name: users.name,
+  email: users.email,
+  createdAt: users.createdAt,
+};
+
 export const userRoutes = new Elysia({ prefix: '/users' })
-  // GET /users - List all users
+  // GET /users - List all users (excluding password)
   .get('/', async () => {
-    const allUsers = await db.select().from(users);
+    const allUsers = await db.select(userPublicFields).from(users);
     return {
       success: true,
       data: allUsers,
     };
   })
 
-  // GET /users/:id - Get user by ID
+  // GET /users/:id - Get user by ID (excluding password)
   .get(
     '/:id',
     async ({ params: { id }, set }) => {
       const result = await db
-        .select()
+        .select(userPublicFields)
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
@@ -43,20 +51,23 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     }
   )
 
-  // POST /users - Create new user
+  // POST /users - Create new user (properly hashing password)
   .post(
     '/',
     async ({ body, set }) => {
       try {
+        const rawPassword = body.password || 'changeme123';
+        const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
         const insertResult = await db.insert(users).values({
           name: body.name,
           email: body.email,
-          password: (body as any).password || '',
+          password: hashedPassword,
         });
 
         const insertId = Number(insertResult[0].insertId);
         const createdUsers = await db
-          .select()
+          .select(userPublicFields)
           .from(users)
           .where(eq(users.id, insertId))
           .limit(1);
@@ -65,7 +76,12 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         return {
           success: true,
           message: 'User created successfully',
-          data: createdUsers[0] || { id: insertId, ...body },
+          data: createdUsers[0] || {
+            id: insertId,
+            name: body.name,
+            email: body.email,
+            createdAt: new Date(),
+          },
         };
       } catch (error: any) {
         if (error?.code === 'ER_DUP_ENTRY') {
@@ -78,7 +94,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         set.status = 500;
         return {
           success: false,
-          message: error?.message || 'Failed to create user',
+          message: 'Failed to create user',
         };
       }
     },
@@ -86,6 +102,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       body: t.Object({
         name: t.String({ minLength: 1 }),
         email: t.String({ format: 'email' }),
+        password: t.Optional(t.String({ minLength: 6 })),
       }),
     }
   )
@@ -95,7 +112,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     '/:id',
     async ({ params: { id }, body, set }) => {
       const existing = await db
-        .select()
+        .select(userPublicFields)
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
@@ -108,13 +125,19 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         };
       }
 
-      await db
-        .update(users)
-        .set(body)
-        .where(eq(users.id, id));
+      const updateData: { name?: string; email?: string } = {};
+      if (body.name !== undefined) updateData.name = body.name;
+      if (body.email !== undefined) updateData.email = body.email;
+
+      if (Object.keys(updateData).length > 0) {
+        await db
+          .update(users)
+          .set(updateData)
+          .where(eq(users.id, id));
+      }
 
       const updated = await db
-        .select()
+        .select(userPublicFields)
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
@@ -141,7 +164,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     '/:id',
     async ({ params: { id }, set }) => {
       const existing = await db
-        .select()
+        .select(userPublicFields)
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
