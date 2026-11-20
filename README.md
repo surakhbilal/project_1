@@ -117,13 +117,68 @@ DATABASE_URL=mysql://root:@localhost:3306/project_1_db
    ```
    *(Atau jalankan migrasi SQL menggunakan `bun run db:migrate`)*.
 
-### Langkah 5: Jalankan Server Full-Stack (Backend + Frontend Sekaligus)
-Cukup jalankan **satu perintah** berikut:
+### Langkah 5: Cara Menjalankan Aplikasi (Front-End & Back-End)
+
+Aplikasi **EduRail** dirancang secara modular dan efisien: Bun + ElysiaJS dapat menyajikan REST API Back-End dan antarmuka Front-End React secara bersamaan (Full-Stack), maupun dijalankan dan dikembangkan secara terpisah.
+
+#### 🌟 Opsi A: Menjalankan Secara Sekaligus (Full-Stack Mode — Paling Direkomendasikan)
+Cukup jalankan **satu perintah** berikut di root folder proyek:
 ```bash
 bun run dev
 ```
-Server ElysiaJS akan otomatis menyajikan **Frontend React EduRail** sekaligus seluruh **REST API Backend** di:
-👉 **`http://localhost:3000`**
+- **Front-End & Back-End aktif bersamaan** di: 👉 **`http://localhost:3000`**
+- Halaman web EduRail langsung dapat diakses di browser Anda.
+- Route `/health`, `/api/users`, `/users`, dan semua endpoint backend aktif di port yang sama.
+- Fitur *live watch/hot-reload* aktif otomatis untuk setiap perubahan kode file frontend maupun backend.
+
+---
+
+#### ⚙️ Opsi B: Menjalankan Bagian Back-End Saja (REST API & Database Service)
+Jika Anda hanya ingin menjalankan atau menguji sisi server API tanpa membuka antarmuka grafis:
+
+1. **Jalankan Server Back-End:**
+   ```bash
+   # Mode pengembangan dengan auto-reload
+   bun run dev
+
+   # Atau mode production
+   bun run start
+   ```
+2. **Periksa Kesehatan Server (Health Check):**
+   ```bash
+   curl http://localhost:3000/health
+   # Response: {"status":"ok","timestamp":"..."}
+   ```
+3. **Akses & Uji Endpoint Back-End:**
+   - Registrasi Mahasiswa: `POST http://localhost:3000/api/users`
+   - Login & Sesi Token: `POST http://localhost:3000/api/users/login`
+   - Verifikasi Profil User Aktif: `GET http://localhost:3000/api/users/current` *(Header `Authorization: Bearer <token>`)*
+   - Logout & Revoke Token: `DELETE http://localhost:3000/api/users/current`
+   - Data Seluruh User di DB: `GET http://localhost:3000/users`
+4. **GUI Database MySQL via Drizzle Studio:**
+   ```bash
+   bun run db:studio
+   ```
+   Buka `https://local.drizzle.studio` di browser untuk menginspeksi tabel database secara visual.
+
+---
+
+#### 🎨 Opsi C: Menjalankan & Membangun (Build) Bagian Front-End Saja
+Front-End EduRail dibangun menggunakan **React 19 + TypeScript + Tailwind CSS** yang terletak di folder `src/frontend/`.
+
+1. **Build Bundle Front-End untuk Produksi:**
+   Untuk mengompilasi seluruh source code React & ikon Lucide menjadi satu file JavaScript bundle statis:
+   ```bash
+   bun run build:ui
+   ```
+   Bundle siap pakai akan dihasilkan di: `public/app.js`.
+
+2. **Mekanisme Bundling & Serving Front-End:**
+   - **On-the-Fly (Otomatis):** Saat menjalankan `bun run dev`, endpoint `GET /app.js` di `src/index.ts` menggunakan API bawaan `Bun.build` untuk mem-bundle kode `src/frontend/main.tsx` secara dinamis setiap kali halaman di-refresh.
+   - **Standalone / Static Hosting (Deploy Terpisah):** Jika Anda ingin mendeploy front-end secara terpisah (misalnya di hosting statis seperti Vercel, Netlify, Cloudflare Pages, atau Nginx):
+     1. Jalankan `bun run build:ui`.
+     2. Salin folder `public/` (berisi `index.html` dan `app.js`) ke web server statis pilihan Anda.
+     3. Pastikan konfigurasi URL backend di `src/frontend/services/api.ts` mengarah ke alamat server backend Anda (default: `http://localhost:3000`).
 
 ---
 
