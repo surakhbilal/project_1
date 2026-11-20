@@ -1,5 +1,5 @@
 import {
-  int,
+  bigint,
   mysqlTable,
   serial,
   timestamp,
@@ -10,7 +10,8 @@ import { users } from './users';
 export const sessions = mysqlTable('sessions', {
   id: serial('id').primaryKey(),
   token: varchar('token', { length: 255 }).notNull().unique(),
-  userId: int('user_id')
+  // users.id bertipe `serial` (BIGINT UNSIGNED), jadi FK harus bigint unsigned juga.
+  userId: bigint('user_id', { mode: 'number', unsigned: true })
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),

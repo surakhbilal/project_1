@@ -21,13 +21,21 @@ Boilerplate backend REST API modern menggunakan runtime **Bun**, framework **Ely
 project_1/
 ├── src/
 │   ├── index.ts             # Entry point server Elysia
+│   ├── errors.ts            # HttpError + handler error terpusat
+│   ├── lib/
+│   │   └── auth.ts           # Helper ekstraksi Bearer token
 │   ├── db/
 │   │   ├── index.ts          # Koneksi database & pooling singleton
 │   │   └── schema/
 │   │       ├── index.ts      # Re-export schema
-│   │       └── users.ts      # Definisi schema tabel users
-│   └── routes/
-│       └── users.ts          # CRUD routes handler untuk resource users
+│   │       ├── users.ts      # Definisi schema tabel users
+│   │       └── sessions.ts   # Definisi schema tabel sessions
+│   ├── routes/
+│   │   ├── users.ts          # CRUD resource users
+│   │   └── users-route.ts    # Registrasi, login, current user, logout
+│   └── services/
+│       └── users-service.ts  # Logic bisnis user & session
+├── test/                      # Unit test (bun test)
 ├── drizzle/                  # File migration SQL hasil generate Drizzle
 ├── drizzle.config.ts         # Konfigurasi Drizzle Kit
 ├── package.json              # Dependensi dan scripts
@@ -126,25 +134,33 @@ Server default berjalan di: `http://localhost:3000`
 - **`GET /users/:id`**
   - Mengambil detail satu user berdasarkan ID.
 - **`POST /users`**
-  - Membuat user baru.
+  - Membuat user baru (password di-hash dengan bcrypt, sama seperti registrasi).
   - Body (JSON):
     ```json
     {
       "name": "Surakh Bilal",
-      "email": "bilal@example.com"
+      "email": "bilal@example.com",
+      "password": "rahasia123"
     }
     ```
 - **`PUT /users/:id`**
-  - Memperbarui data user berdasarkan ID.
+  - Memperbarui data user berdasarkan ID. Field `password` (jika dikirim) akan di-hash ulang.
   - Body (JSON, opsional):
     ```json
     {
       "name": "Nama Baru",
-      "email": "baru@example.com"
+      "email": "baru@example.com",
+      "password": "passwordbaru"
     }
     ```
 - **`DELETE /users/:id`**
   - Menghapus user berdasarkan ID.
+
+> **Catatan:** endpoint CRUD `/users` belum dilindungi autentikasi dan hanya mengembalikan kolom publik (`id`, `name`, `email`, `createdAt`); hash password tidak pernah dikirim ke client.
+
+### Format Error
+
+Semua error dari endpoint `/api/users` dan `/users` memakai bentuk `{ "error": "pesan" }`. Error internal (database, query) dikembalikan sebagai `500 Internal Server Error` tanpa membocorkan detail.
 
 ### Registrasi User (Baru)
 - **`POST /api/users`**

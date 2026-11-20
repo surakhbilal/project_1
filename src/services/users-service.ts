@@ -1,33 +1,48 @@
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 import { db, users, sessions } from '../db';
-import { randomUUID } from 'crypto';
-import { HttpError } from '../errors';
+import { HttpError, isDuplicateEntryError } from '../errors';
 
-export async function registerUser(name: string, email: string, password: string): Promise<string> {
-  // Check if email is already registered
+const SALT_ROUNDS = 10;
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+export async function registerUser(
+  name: string,
+  email: string,
+  password: string,
+): Promise<string> {
+  const normalizedEmail = normalizeEmail(email);
+  const trimmedName = name.trim();
+
+  if (!trimmedName) {
+    throw new HttpError(400, 'Nama wajib diisi');
+  }
+
   const existingUser = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, email))
+    .where(eq(users.email, normalizedEmail))
     .limit(1);
 
   if (existingUser.length > 0) {
     throw new HttpError(400, 'Email sudah terdaftar');
   }
 
-  // Hash password using bcryptjs with 10 salt rounds
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-  // Insert new user into database (also catch race-condition duplicate entry)
   try {
     await db.insert(users).values({
-      name,
-      email,
+      name: trimmedName,
+      email: normalizedEmail,
       password: hashedPassword,
     });
-  } catch (error: any) {
-    if (error?.code === 'ER_DUP_ENTRY') {
+  } catch (error) {
+    // Tangani race condition: dua request mendaftar email yang sama bersamaan.
+    if (isDuplicateEntryError(error)) {
       throw new HttpError(400, 'Email sudah terdaftar');
     }
     throw error;
@@ -40,28 +55,28 @@ export async function loginUser(
   email: string,
   password: string,
 ): Promise<string> {
-  // Query user by email
+  const normalizedEmail = normalizeEmail(email);
+
   const existingUser = await db
     .select()
     .from(users)
-    .where(eq(users.email, email))
+    .where(eq(users.email, normalizedEmail))
     .limit(1);
 
   const user = existingUser[0];
+
   if (!user) {
     throw new HttpError(400, 'Email atau password salah');
   }
 
-  // Compare password with bcrypt hash
   const isPasswordValid = await bcrypt.compare(password, user.password);
+
   if (!isPasswordValid) {
     throw new HttpError(400, 'Email atau password salah');
   }
 
-  // Generate session token
   const token = randomUUID();
 
-  // Insert new session
   await db.insert(sessions).values({
     token,
     userId: user.id,
@@ -78,9 +93,8 @@ export type CurrentUser = {
 };
 
 export async function getCurrentUser(token: string): Promise<CurrentUser> {
-  // Query session by token
   const existingSession = await db
-    .select()
+    .select({ id: sessions.id, userId: sessions.userId })
     .from(sessions)
     .where(eq(sessions.token, token))
     .limit(1);
@@ -90,7 +104,6 @@ export async function getCurrentUser(token: string): Promise<CurrentUser> {
     throw new HttpError(401, 'Unauthorized');
   }
 
-  // Query user by userId without password
   const existingUser = await db
     .select({
       id: users.id,
@@ -111,19 +124,16 @@ export async function getCurrentUser(token: string): Promise<CurrentUser> {
 }
 
 export async function logoutUser(token: string): Promise<string> {
-  // Query session by token
   const existingSession = await db
     .select({ id: sessions.id })
     .from(sessions)
     .where(eq(sessions.token, token))
     .limit(1);
 
-  const session = existingSession[0];
-  if (!session) {
+  if (!existingSession[0]) {
     throw new HttpError(401, 'Unauthorized');
   }
 
-  // Delete session from sessions table
   await db.delete(sessions).where(eq(sessions.token, token));
 
   return 'OK';
