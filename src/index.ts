@@ -6,6 +6,32 @@ import { poolConnection } from './db';
 const port = Number(process.env.PORT) || 3000;
 
 export const app = new Elysia()
+  // Serve Frontend EduRail App (HTML)
+  .get('/', () => {
+    return new Response(Bun.file('public/index.html'), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+  })
+  // Serve Frontend Bundle (React + Lucide bundled via Bun.build)
+  .get('/app.js', async () => {
+    const buildResult = await Bun.build({
+      entrypoints: ['./src/frontend/main.tsx'],
+      target: 'browser',
+      minify: false,
+    });
+
+    const output = buildResult.outputs[0];
+    if (buildResult.success && output) {
+      const code = await output.text();
+      return new Response(code, {
+        headers: { 'Content-Type': 'application/javascript; charset=utf-8' },
+      });
+    }
+
+    return new Response(Bun.file('public/app.js'), {
+      headers: { 'Content-Type': 'application/javascript; charset=utf-8' },
+    });
+  })
   // Health check endpoint
   .get('/health', () => ({
     status: 'ok',
@@ -20,7 +46,7 @@ if (import.meta.main) {
   app.listen(port);
 
   console.log(
-    `🦊 Elysia server running at http://${app.server?.hostname}:${app.server?.port}`,
+    `🦊 EduRail Full-Stack Server (ElysiaJS + React UI) running at http://${app.server?.hostname}:${app.server?.port}`,
   );
 
   const shutdown = async () => {

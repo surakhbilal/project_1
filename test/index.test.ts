@@ -43,6 +43,14 @@ describe('Health check', () => {
     expect(data.status).toBe('ok');
     expect(data.timestamp).toBeDefined();
   });
+
+  it('serves EduRail Frontend HTML on GET /', async () => {
+    const response = await app.handle(new Request(`${BASE_URL}/`));
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/html');
+    const html = await response.text();
+    expect(html).toContain('EduRail');
+  });
 });
 
 describe('Request validation', () => {

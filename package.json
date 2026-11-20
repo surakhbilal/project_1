@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "bun --watch run src/index.ts",
     "start": "bun run src/index.ts",
+    "build:ui": "bun build ./src/frontend/main.tsx --outfile ./public/app.js",
     "test": "bun test",
     "typecheck": "bun check",
     "db:generate": "drizzle-kit generate",
@@ -18,10 +19,16 @@
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.4",
     "elysia": "^1.4.32",
-    "mysql2": "^3.24.6"
+    "lucide-react": "^1.77.0",
+    "mysql2": "^3.24.6",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/bun": "^1.4.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "drizzle-kit": "^0.31.11",
     "typescript": "^7.0.2"
   }
