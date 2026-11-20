@@ -20,4 +20,19 @@ describe('Elysia Server Endpoints', () => {
     );
     expect(response.status).toBe(422);
   });
+
+  it('validates request body for POST /api/users (missing password or invalid email)', async () => {
+    const response = await app.handle(
+      new Request('http://localhost:3000/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'rakhbil',
+          email: 'not-an-email',
+          password: '123', // less than 6 chars
+        }),
+      })
+    );
+    expect(response.status).toBe(422);
+  });
 });

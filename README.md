@@ -145,3 +145,27 @@ Server default berjalan di: `http://localhost:3000`
     ```
 - **`DELETE /users/:id`**
   - Menghapus user berdasarkan ID.
+
+### Registrasi User (Baru)
+- **`POST /api/users`**
+  - Mendaftarkan user baru dengan password yang di-hash menggunakan bcrypt.
+  - Body (JSON):
+    ```json
+    {
+      "name": "rakhbil",
+      "email": "rakhbil@localhost",
+      "password": "rahasia"
+    }
+    ```
+  - Response Success (201):
+    ```json
+    {
+      "data": "OK"
+    }
+    ```
+  - Response Error (400 - Email Duplikat):
+    ```json
+    {
+      "error": "Email sudah terdaftar"
+    }
+    ```

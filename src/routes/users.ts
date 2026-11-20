@@ -51,6 +51,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         const insertResult = await db.insert(users).values({
           name: body.name,
           email: body.email,
+          password: (body as any).password || '',
         });
 
         const insertId = Number(insertResult[0].insertId);
